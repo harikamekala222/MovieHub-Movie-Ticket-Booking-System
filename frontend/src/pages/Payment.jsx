@@ -548,7 +548,7 @@ function Payment() {
 
             const response =
                 await fetch(
-                    "http://127.0.0.1:8000/bookings/",
+                    "http://40.192.61.165:8000/bookings/",
                     {
 
                         method:

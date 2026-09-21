@@ -14,17 +14,17 @@ class Location(Base):
     )
 
     city = Column(
-        String,
+        String(100),
         nullable=False
     )
 
     area = Column(
-        String,
+        String(100),
         nullable=False
     )
 
     state = Column(
-        String,
+        String(100),
         nullable=False,
         default="Tamil Nadu"
     )

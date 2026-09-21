@@ -32,12 +32,12 @@ class ShowTiming(Base):
     )
 
     language = Column(
-        String,
+        String(100),
         nullable=False
     )
 
     show_time = Column(
-        String,
+        String(50),
         nullable=False
     )
 

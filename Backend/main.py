@@ -1,4 +1,7 @@
 from fastapi import FastAPI
+
+from database import Base, engine
+import models
 from fastapi.middleware.cors import CORSMiddleware
 
 from routes import auth
@@ -12,13 +15,15 @@ from routes import movie_theatres
 
 app = FastAPI()
 
+# Create database tables if they do not already exist
+Base.metadata.create_all(bind=engine)
+
 
 app.add_middleware(
     CORSMiddleware,
 
     allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173"
+        "http://40.192.61.165",
     ],
 
     allow_credentials=True,

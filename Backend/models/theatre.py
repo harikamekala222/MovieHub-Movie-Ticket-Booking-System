@@ -14,7 +14,7 @@ class Theatre(Base):
     )
 
     name = Column(
-        String,
+        String(150),
         nullable=False
     )
 
@@ -28,17 +28,17 @@ class Theatre(Base):
     )
 
     city = Column(
-        String,
+        String(100),
         nullable=False
     )
 
     area = Column(
-        String,
+        String(100),
         nullable=False
     )
 
     address = Column(
-        String,
+        String(255),
         nullable=False
     )
 

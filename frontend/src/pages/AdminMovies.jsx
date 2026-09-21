@@ -6,7 +6,7 @@ import { getMovieImage } from "../utils/movieImages";
 
 import "../styles/AdminMovies.css";
 
-const API = "http://127.0.0.1:8000";
+const API = "http://40.192.61.165:8000";
 
 function AdminMovies() {
     const navigate = useNavigate();

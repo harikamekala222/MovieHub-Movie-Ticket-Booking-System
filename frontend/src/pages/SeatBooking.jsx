@@ -163,7 +163,7 @@ function SeatBooking() {
                 // --------------------------------------
 
                 const url =
-                    `http://127.0.0.1:8000/bookings/booked-seats/${movieId}/${encodeURIComponent(date)}/${encodeURIComponent(time)}/${encodeURIComponent(theatre)}`;
+                    `http://40.192.61.165:8000/bookings/booked-seats/${movieId}/${encodeURIComponent(date)}/${encodeURIComponent(time)}/${encodeURIComponent(theatre)}`;
 
 
                 console.log(
