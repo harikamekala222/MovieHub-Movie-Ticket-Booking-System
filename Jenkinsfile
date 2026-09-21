@@ -19,6 +19,21 @@ pipeline {
                 }
             }
         }
+        stage('Check Environment Files') {
+            steps {
+                sh '''
+                    echo "Checking .env variable names..."
+
+                    grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env \
+                    | sed 's/=.*$/=********/'
+
+                    echo "Checking Backend/.env variable names..."
+
+                    grep -E '^[A-Za-z_][A-Za-z0-9_]*=' Backend/.env \
+                    | sed 's/=.*$/=********/'
+                '''
+             }
+        }
 
         stage('Stop Existing Containers') {
             steps {
