@@ -2,12 +2,6 @@ pipeline {
 
     agent any
 
-    environment {
-
-        PROJECT_DIR = "/home/ubuntu/MovieHub-Movie-Ticket-Booking-System"
-
-    }
-
     stages {
 
         stage('Checkout') {
@@ -20,31 +14,6 @@ pipeline {
 
         }
 
-        stage('Copy Project') {
-
-            steps {
-
-                sh '''
-
-                sudo mkdir -p "$PROJECT_DIR"
-
-                sudo chmod 755 /home/ubuntu
-
-                sudo rsync -av --delete \\
-                    --exclude='.git' \\
-                    "$WORKSPACE"/ "$PROJECT_DIR"/
-
-                sudo chown -R jenkins:jenkins "$PROJECT_DIR"
-
-                echo "Project copied successfully"
-
-                ls -la "$PROJECT_DIR"
-
-                '''
-
-            }
-
-        }
 
         stage('Create Environment Files') {
 
@@ -52,9 +21,9 @@ pipeline {
 
                 sh '''
 
-                cd "$PROJECT_DIR"
-
-                echo "Creating root .env file..."
+                echo "======================================"
+                echo "Creating Environment Files"
+                echo "======================================"
 
                 cat > .env <<EOF
 MYSQL_DATABASE=employee_db
@@ -62,8 +31,6 @@ MYSQL_USER=appuser
 MYSQL_PASSWORD=apppass
 MYSQL_ROOT_PASSWORD=rootpass
 EOF
-
-                echo "Creating Backend/.env file..."
 
                 cat > Backend/.env <<EOF
 DB_USER=appuser
@@ -75,37 +42,46 @@ EOF
                 chmod 600 .env
                 chmod 600 Backend/.env
 
-                echo "Environment files created successfully"
+                echo ""
+                echo "Checking required MySQL variables..."
+
+                grep '^MYSQL_DATABASE=' .env >/dev/null \
+                    && echo "MYSQL_DATABASE: FOUND" \
+                    || { echo "MYSQL_DATABASE: MISSING"; exit 1; }
+
+                grep '^MYSQL_USER=' .env >/dev/null \
+                    && echo "MYSQL_USER: FOUND" \
+                    || { echo "MYSQL_USER: MISSING"; exit 1; }
+
+                grep '^MYSQL_PASSWORD=' .env >/dev/null \
+                    && echo "MYSQL_PASSWORD: FOUND" \
+                    || { echo "MYSQL_PASSWORD: MISSING"; exit 1; }
+
+                grep '^MYSQL_ROOT_PASSWORD=' .env >/dev/null \
+                    && echo "MYSQL_ROOT_PASSWORD: FOUND" \
+                    || { echo "MYSQL_ROOT_PASSWORD: MISSING"; exit 1; }
 
                 echo ""
-                echo "Checking root .env variables..."
+                echo "Checking backend variables..."
 
-                grep '^MYSQL_DATABASE=' .env \
-                    && echo "MYSQL_DATABASE: FOUND"
+                grep '^DB_USER=' Backend/.env >/dev/null \
+                    && echo "DB_USER: FOUND" \
+                    || { echo "DB_USER: MISSING"; exit 1; }
 
-                grep '^MYSQL_USER=' .env \
-                    && echo "MYSQL_USER: FOUND"
+                grep '^DB_PASSWORD=' Backend/.env >/dev/null \
+                    && echo "DB_PASSWORD: FOUND" \
+                    || { echo "DB_PASSWORD: MISSING"; exit 1; }
 
-                grep '^MYSQL_PASSWORD=' .env \
-                    && echo "MYSQL_PASSWORD: FOUND"
+                grep '^DB_HOST=' Backend/.env >/dev/null \
+                    && echo "DB_HOST: FOUND" \
+                    || { echo "DB_HOST: MISSING"; exit 1; }
 
-                grep '^MYSQL_ROOT_PASSWORD=' .env \
-                    && echo "MYSQL_ROOT_PASSWORD: FOUND"
+                grep '^DB_NAME=' Backend/.env >/dev/null \
+                    && echo "DB_NAME: FOUND" \
+                    || { echo "DB_NAME: MISSING"; exit 1; }
 
                 echo ""
-                echo "Checking Backend/.env variables..."
-
-                grep '^DB_USER=' Backend/.env \
-                    && echo "DB_USER: FOUND"
-
-                grep '^DB_PASSWORD=' Backend/.env \
-                    && echo "DB_PASSWORD: FOUND"
-
-                grep '^DB_HOST=' Backend/.env \
-                    && echo "DB_HOST: FOUND"
-
-                grep '^DB_NAME=' Backend/.env \
-                    && echo "DB_NAME: FOUND"
+                echo "Environment files created successfully."
 
                 '''
 
@@ -113,15 +89,16 @@ EOF
 
         }
 
+
         stage('Validate Docker Compose') {
 
             steps {
 
                 sh '''
 
-                cd "$PROJECT_DIR"
-
-                echo "Validating Docker Compose configuration..."
+                echo "======================================"
+                echo "Validating Docker Compose"
+                echo "======================================"
 
                 docker compose --env-file .env config --quiet
 
@@ -133,27 +110,27 @@ EOF
 
         }
 
-        stage('Stop Containers & Cleanup') {
+
+        stage('Stop Existing Containers') {
 
             steps {
 
                 sh '''
 
-                cd "$PROJECT_DIR"
-
-                echo "Stopping existing containers..."
+                echo "======================================"
+                echo "Stopping Existing Containers"
+                echo "======================================"
 
                 docker compose --env-file .env down || true
 
-                echo "Cleaning unused Docker resources..."
-
-                docker system prune -af || true
+                echo "Existing containers stopped."
 
                 '''
 
             }
 
         }
+
 
         stage('Build Docker Images') {
 
@@ -161,17 +138,20 @@ EOF
 
                 sh '''
 
-                cd "$PROJECT_DIR"
-
-                echo "Building Docker images..."
+                echo "======================================"
+                echo "Building Docker Images"
+                echo "======================================"
 
                 docker compose --env-file .env build --no-cache
+
+                echo "Docker images built successfully."
 
                 '''
 
             }
 
         }
+
 
         stage('Deploy Containers') {
 
@@ -179,11 +159,13 @@ EOF
 
                 sh '''
 
-                cd "$PROJECT_DIR"
-
-                echo "Starting MovieHub containers..."
+                echo "======================================"
+                echo "Starting MovieHub"
+                echo "======================================"
 
                 docker compose --env-file .env up -d
+
+                echo "Containers started."
 
                 '''
 
@@ -191,15 +173,16 @@ EOF
 
         }
 
+
         stage('Wait for Services') {
 
             steps {
 
                 sh '''
 
-                cd "$PROJECT_DIR"
-
-                echo "Waiting for MySQL and backend services..."
+                echo "======================================"
+                echo "Waiting for Services"
+                echo "======================================"
 
                 sleep 20
 
@@ -214,13 +197,16 @@ EOF
 
         }
 
+
         stage('Verify MySQL') {
 
             steps {
 
                 sh '''
 
-                echo "Checking MySQL container..."
+                echo "======================================"
+                echo "Verifying MySQL"
+                echo "======================================"
 
                 MYSQL_STATUS=$(docker inspect -f '{{.State.Status}}' employee_mysql 2>/dev/null || echo "missing")
 
@@ -228,7 +214,7 @@ EOF
 
                 if [ "$MYSQL_STATUS" != "running" ]; then
 
-                    echo "ERROR: MySQL container is not running."
+                    echo "ERROR: employee_mysql is not running."
 
                     docker logs employee_mysql --tail 100 || true
 
@@ -244,18 +230,22 @@ EOF
 
         }
 
+
         stage('Verify Database') {
 
             steps {
 
                 sh '''
 
-                echo "Checking database tables..."
+                echo "======================================"
+                echo "Verifying Database"
+                echo "======================================"
 
-                docker exec employee_mysql \\
-                    mysql -uappuser -papppass employee_db \\
+                docker exec employee_mysql \
+                    mysql -uappuser -papppass employee_db \
                     -e "SHOW TABLES;"
 
+                echo ""
                 echo "Database verification completed."
 
                 '''
@@ -264,13 +254,16 @@ EOF
 
         }
 
+
         stage('Verify Backend') {
 
             steps {
 
                 sh '''
 
-                echo "Checking backend container..."
+                echo "======================================"
+                echo "Verifying Backend"
+                echo "======================================"
 
                 BACKEND_STATUS=$(docker inspect -f '{{.State.Status}}' employee_backend 2>/dev/null || echo "missing")
 
@@ -278,7 +271,7 @@ EOF
 
                 if [ "$BACKEND_STATUS" != "running" ]; then
 
-                    echo "ERROR: Backend container is not running."
+                    echo "ERROR: employee_backend is not running."
 
                     docker logs employee_backend --tail 100 || true
 
@@ -291,11 +284,11 @@ EOF
                 echo ""
                 echo "Testing Backend API..."
 
-                curl --fail \\
-                     --retry 5 \\
-                     --retry-delay 3 \\
-                     --connect-timeout 5 \\
-                     --max-time 20 \\
+                curl --fail \
+                     --retry 5 \
+                     --retry-delay 3 \
+                     --connect-timeout 5 \
+                     --max-time 20 \
                      http://localhost:8000/movies/
 
                 echo ""
@@ -308,13 +301,16 @@ EOF
 
         }
 
+
         stage('Verify Frontend') {
 
             steps {
 
                 sh '''
 
-                echo "Checking frontend container..."
+                echo "======================================"
+                echo "Verifying Frontend"
+                echo "======================================"
 
                 FRONTEND_STATUS=$(docker inspect -f '{{.State.Status}}' employee_frontend 2>/dev/null || echo "missing")
 
@@ -322,7 +318,7 @@ EOF
 
                 if [ "$FRONTEND_STATUS" != "running" ]; then
 
-                    echo "ERROR: Frontend container is not running."
+                    echo "ERROR: employee_frontend is not running."
 
                     docker logs employee_frontend --tail 100 || true
 
@@ -333,13 +329,13 @@ EOF
                 echo "Frontend container is running."
 
                 echo ""
-                echo "Testing frontend..."
+                echo "Testing Frontend..."
 
-                curl --fail \\
-                     --retry 5 \\
-                     --retry-delay 3 \\
-                     --connect-timeout 5 \\
-                     --max-time 20 \\
+                curl --fail \
+                     --retry 5 \
+                     --retry-delay 3 \
+                     --connect-timeout 5 \
+                     --max-time 20 \
                      http://localhost/
 
                 echo ""
@@ -352,13 +348,12 @@ EOF
 
         }
 
+
         stage('Final Status') {
 
             steps {
 
                 sh '''
-
-                cd "$PROJECT_DIR"
 
                 echo ""
                 echo "======================================"
@@ -370,10 +365,10 @@ EOF
                 echo ""
                 echo "===== Running Containers ====="
 
-                docker ps \\
-                    --filter "name=employee_mysql" \\
-                    --filter "name=employee_backend" \\
-                    --filter "name=employee_frontend" \\
+                docker ps \
+                    --filter "name=employee_mysql" \
+                    --filter "name=employee_backend" \
+                    --filter "name=employee_frontend" \
                     --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"
 
                 '''
@@ -384,6 +379,7 @@ EOF
 
     }
 
+
     post {
 
         success {
@@ -392,9 +388,11 @@ EOF
             echo "======================================"
             echo "SUCCESS"
             echo "======================================"
+
             echo "MovieHub Movie Ticket Booking System deployed successfully!"
 
         }
+
 
         failure {
 
@@ -423,21 +421,18 @@ EOF
             echo ""
             echo "===== Docker Compose Status ====="
 
-            cd "$PROJECT_DIR"
-
             docker compose --env-file .env ps || true
 
             '''
 
-            echo "FAILED: MovieHub deployment failed. Check Jenkins console output."
+            echo "MovieHub deployment failed. Check the logs above."
 
         }
+
 
         always {
 
             sh '''
-
-            sudo chown -R ubuntu:ubuntu "$PROJECT_DIR" || true
 
             docker image prune -f || true
 
